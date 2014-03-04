@@ -2,7 +2,6 @@
 
 use strict;
 use Template;
-use Error qw(:try);
 use JSON qw(encode_json);
 
 our $format = encode_json([
@@ -23,15 +22,19 @@ our $graphs = [
     {
         id          => 'sync_test',
         title       => 'Sync test results',
-        data        => undef,
-        file_path   => 'data/sync_test.output',
+        file_path   => '/var/lib/jenkins/tap_results/sync_test.csv',
         format      => $format,
     }, 
     {
         id          => 'api_test',
         title       => 'API test results',
-        data        => undef,
-        file_path   => 'data/api_test.output',
+        file_path   => '/var/lib/jenkins/tap_results/api_test.csv',
+        format      => $format,
+    },
+    {
+        id          => 'orchestrator_test',
+        title       => 'Orchestrator test results',
+        file_path   => '/var/lib/jenkins/tap_results/orchestrator_test.csv',
         format      => $format,
     },
 ];
@@ -39,26 +42,27 @@ our $graphs = [
 sub make_graph_data_from_file {
     my ($file_path) = @_;
 
-    my $data = "[['Date', 'OK', 'Not OK', 'Skip', 'Todo']";
+    my $data = [['Date', 'OK', 'Not OK', 'Skip', 'Todo']],
     my $file_h;
-    try{
-        open($file_h, '<', $file_path) or die 'Cannot open the input file.';
-        while(my $line = <$file_h>) {
-            $data .= ', ';
-            $data .= '[' . $line . ']';
+    open($file_h, '<', $file_path) or die 'Cannot open the input file.';
+    while(my $line = <$file_h>) {
+        my $row = []; 
+        my @elements = split(',', $line);
+        my $date = shift @elements;
+        push @$row, $date;
+        foreach my $elm (@elements) {
+          push @$row, int($elm); 
         }
-
-        $data .= "]";
+        push @$data, $row;
     }
-    finally {
-        close $file_h;
-        return $data;
-    }
+    close $file_h;
+    return $data;
 }
 
 sub main {
     foreach(@$graphs) {
         $_->{data} = make_graph_data_from_file($_->{file_path});
+        $_->{data_json} = encode_json($_->{data});
     }
 
     my $tt = Template->new({
