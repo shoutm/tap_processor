@@ -6,7 +6,7 @@
       google.setOnLoadCallback(drawChart);
       function drawChart() {
         [% FOREACH graph IN graphs %]
-        var data = google.visualization.arrayToDataTable([% graph.data_json %]);
+        var data = google.visualization.arrayToDataTable([% graph.graph_data %]);
 
         var options = {
           title: '[% graph.title %]',
@@ -28,7 +28,7 @@
         <h1>[% graph.title %]</h1>
         <div id="[% graph.id %]" style="width: 900px; height: 500px;"></div>
         <table border=1>
-          [% FOREACH tr IN graph.data %]
+          [% FOREACH tr IN graph.chart_data %]
           <tr>
             [% FOREACH td IN tr %]
             <td>[% td %]</td>
