@@ -21,26 +21,9 @@ our $format = encode_json([
         color => 'green',
     },
 ]);
-our $graphs = [
-    {
-        id          => 'sync_test',
-        title       => 'Sync test results',
-        file_path   => '/var/lib/jenkins/tap_results/sync_test.csv',
-        format      => $format,
-    }, 
-    {
-        id          => 'api_test',
-        title       => 'API test results',
-        file_path   => '/var/lib/jenkins/tap_results/api_test.csv',
-        format      => $format,
-    },
-    {
-        id          => 'orchestrator_test',
-        title       => 'Orchestrator test results',
-        file_path   => '/var/lib/jenkins/tap_results/orchestrator_test.csv',
-        format      => $format,
-    },
-];
+
+# This directory includes tap result files which name ends with .csv
+our $tap_result_dir = '/var/lib/jenkins/tap_results/';
 
 sub make_graph_data_from_file {
     my ($file_path) = @_;
@@ -93,9 +76,21 @@ sub convert_chartdata_to_graphdata {
 }
 
 sub main {
-    foreach(@$graphs) {
-        $_->{chart_data} = make_graph_data_from_file($_->{file_path});
-        $_->{graph_data} = encode_json(convert_chartdata_to_graphdata($_->{chart_data}));
+    opendir(DIR, $tap_result_dir) || die $!;
+    my $graphs = [];
+    while (my $file_name = readdir(DIR)) {
+        next if $file_name eq '.' or $file_name eq '..' or $file_name !~ /.csv$/;
+        my $graph_item = {};
+        my $file_name_without_ext = $file_name;
+        $file_name_without_ext =~ s/(.+)\.[^.]+$/$1/x;
+        $graph_item->{id} = $file_name_without_ext;
+        $graph_item->{title} = 'Test Result: ' .  $file_name_without_ext;
+        $graph_item->{format} = $format;
+        $graph_item->{chart_data} = make_graph_data_from_file(
+            $tap_result_dir . $file_name);
+        $graph_item->{graph_data} = encode_json(convert_chartdata_to_graphdata(
+            $graph_item->{chart_data}));
+        push @$graphs, $graph_item;
     }
 
     my $tt = Template->new({
