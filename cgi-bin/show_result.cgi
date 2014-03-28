@@ -52,7 +52,13 @@ sub make_graph_data_from_file {
         }
 
         # Push OK coverage
-        my $coverage = int($ok / $total * 100);
+        my $coverage;
+        if($total == 0) {
+            $coverage = 0;
+        }
+        else {
+            $coverage = int($ok / $total * 100);
+        }       
         push @$row, $coverage; 
 
         push @$data, $row;
